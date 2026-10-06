@@ -133,26 +133,45 @@
         let activeChatPlate = null;
 
         window.onload = function() {
-            const savedChats = localStorage.getItem('parking_safe_chats');
-            chatThreads = savedChats ? JSON.parse(savedChats) : DEFAULT_CHATS;
-            if (!savedChats) localStorage.setItem('parking_safe_chats', JSON.stringify(chatThreads));
+            try {
+                const savedChats = localStorage.getItem('parking_safe_chats');
+                chatThreads = savedChats ? JSON.parse(savedChats) : { ...DEFAULT_CHATS };
+                if (!savedChats) {
+                    localStorage.setItem('parking_safe_chats', JSON.stringify(chatThreads));
+                }
 
-            renderChatList();
+                renderChatList();
 
-            // Handle URL query parameter if opened directly from search result
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetPlate = urlParams.get('plate');
-            if (targetPlate && chatThreads[targetPlate]) {
-                openChatThread(targetPlate);
+                // Handle URL query parameter if opened directly from search result
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetPlate = urlParams.get('plate');
+                if (targetPlate) {
+                    // Normalize lookup key (match with or without spaces)
+                    const cleanTarget = targetPlate.replace(/\s+/g, '');
+                    const matchedPlate = Object.keys(chatThreads).find(p => p.replace(/\s+/g, '') === cleanTarget) || targetPlate;
+                    
+                    if (!chatThreads[matchedPlate]) {
+                        chatThreads[matchedPlate] = [];
+                        saveChats();
+                    }
+                    openChatThread(matchedPlate);
+                }
+            } catch (err) {
+                console.error("Initialization error:", err);
             }
         };
 
         function saveChats() {
-            localStorage.setItem('parking_safe_chats', JSON.stringify(chatThreads));
+            try {
+                localStorage.setItem('parking_safe_chats', JSON.stringify(chatThreads));
+            } catch (e) {
+                console.error("Failed to save chats:", e);
+            }
         }
 
         function renderChatList() {
             const container = document.getElementById('chatThreadList');
+            if (!container) return;
             container.innerHTML = '';
 
             const plates = Object.keys(chatThreads);
@@ -161,12 +180,18 @@
                 return;
             }
 
-            const carDatabase = JSON.parse(localStorage.getItem('parking_safe_db') || '[]');
+            let carDatabase = [];
+            try {
+                carDatabase = JSON.parse(localStorage.getItem('parking_safe_db') || '[]');
+            } catch (e) {
+                carDatabase = [];
+            }
 
             plates.forEach(plate => {
-                const msgs = chatThreads[plate];
-                const lastMsg = msgs[msgs.length - 1];
-                const car = carDatabase.find(c => c.plate === plate) || { model: '등록 차량', safeNum: '0504 안심번호' };
+                const msgs = chatThreads[plate] || [];
+                const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+                const cleanPlate = plate.replace(/\s+/g, '');
+                const car = carDatabase.find(c => c.plate.replace(/\s+/g, '') === cleanPlate) || { model: '등록 차량', safeNum: '0504 안심번호' };
 
                 const card = document.createElement('div');
                 card.className = 'bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center cursor-pointer hover:border-blue-400 transition-all';
@@ -179,7 +204,7 @@
                         <div>
                             <div class="flex items-center gap-1.5">
                                 <span class="font-extrabold text-slate-900 text-xs">${plate}</span>
-                                <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded">${car.model}</span>
+                                <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded">${car.model || '등록 차량'}</span>
                             </div>
                             <p class="text-[11px] text-slate-500 mt-0.5 line-clamp-1">${lastMsg ? lastMsg.text : '대화 내용 없음'}</p>
                         </div>
@@ -191,23 +216,46 @@
         }
 
         function openChatThread(plate) {
+            if (!plate) return;
             activeChatPlate = plate;
-            const carDatabase = JSON.parse(localStorage.getItem('parking_safe_db') || '[]');
-            const car = carDatabase.find(c => c.plate === plate) || { model: '차주님', safeNum: '0504 가상번호' };
+
+            if (!chatThreads[activeChatPlate]) {
+                chatThreads[activeChatPlate] = [];
+            }
+
+            let carDatabase = [];
+            try {
+                carDatabase = JSON.parse(localStorage.getItem('parking_safe_db') || '[]');
+            } catch (e) {
+                carDatabase = [];
+            }
+
+            const cleanPlate = plate.replace(/\s+/g, '');
+            const car = carDatabase.find(c => c.plate.replace(/\s+/g, '') === cleanPlate) || { model: '차주님', safeNum: '0504 가상번호' };
             
-            document.getElementById('chatThreadList').classList.add('hidden');
-            document.getElementById('chatActiveWindow').classList.remove('hidden');
+            const listEl = document.getElementById('chatThreadList');
+            const windowEl = document.getElementById('chatActiveWindow');
             
-            document.getElementById('activeChatTitle').innerHTML = `<span>${plate}</span> <span class="bg-blue-900 text-blue-300 text-[9px] px-1.5 py-0.2 rounded font-mono">${car.safeNum}</span>`;
-            document.getElementById('activeChatSubtitle').innerText = `${car.model} 차주님과의 대화`;
+            if (listEl) listEl.classList.add('hidden');
+            if (windowEl) windowEl.classList.remove('hidden');
+            
+            const titleEl = document.getElementById('activeChatTitle');
+            const subTitleEl = document.getElementById('activeChatSubtitle');
+
+            if (titleEl) titleEl.innerHTML = `<span>${plate}</span> <span class="bg-blue-900 text-blue-300 text-[9px] px-1.5 py-0.2 rounded font-mono">${car.safeNum || '0504 가상번호'}</span>`;
+            if (subTitleEl) subTitleEl.innerText = `${car.model || '차주님'}과의 대화`;
 
             renderChatMessages();
         }
 
         function closeActiveChat() {
             activeChatPlate = null;
-            document.getElementById('chatActiveWindow').classList.add('hidden');
-            document.getElementById('chatThreadList').classList.remove('hidden');
+            const windowEl = document.getElementById('chatActiveWindow');
+            const listEl = document.getElementById('chatThreadList');
+            
+            if (windowEl) windowEl.classList.add('hidden');
+            if (listEl) listEl.classList.remove('hidden');
+            
             renderChatList();
         }
 
@@ -215,9 +263,11 @@
             if (!activeChatPlate || !chatThreads[activeChatPlate]) return;
 
             const container = document.getElementById('chatMessages');
+            if (!container) return;
             container.innerHTML = '';
 
-            chatThreads[activeChatPlate].forEach(msg => {
+            const msgs = chatThreads[activeChatPlate] || [];
+            msgs.forEach(msg => {
                 const bubble = document.createElement('div');
                 const isMe = msg.sender === 'me';
                 
@@ -238,6 +288,7 @@
 
         function sendChatMessage() {
             const input = document.getElementById('inputChatMessage');
+            if (!input) return;
             const text = input.value.trim();
 
             if (!text || !activeChatPlate) return;
@@ -255,8 +306,11 @@
 
         function sendQuickChatMessage(presetText) {
             if (!activeChatPlate) return;
-            document.getElementById('inputChatMessage').value = presetText;
-            sendChatMessage();
+            const input = document.getElementById('inputChatMessage');
+            if (input) {
+                input.value = presetText;
+                sendChatMessage();
+            }
         }
 
         function triggerAutoResponse() {
@@ -272,7 +326,9 @@
             const reply = autoReplies[Math.floor(Math.random() * autoReplies.length)];
 
             setTimeout(() => {
+                if (!activeChatPlate) return;
                 const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                if (!chatThreads[activeChatPlate]) chatThreads[activeChatPlate] = [];
                 chatThreads[activeChatPlate].push({ sender: 'other', text: reply, time: timeStr });
                 saveChats();
                 renderChatMessages();
@@ -282,9 +338,12 @@
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
-            document.getElementById('toastMsg').innerText = msg;
-            toast.classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => { toast.classList.add('opacity-0', 'pointer-events-none'); }, 2500);
+            const toastMsg = document.getElementById('toastMsg');
+            if (toast && toastMsg) {
+                toastMsg.innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => { toast.classList.add('opacity-0', 'pointer-events-none'); }, 2500);
+            }
         }
     </script>
 </body>
