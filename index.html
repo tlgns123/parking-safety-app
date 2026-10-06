@@ -78,7 +78,7 @@
             <!-- Camera Scanner Panel -->
             <div id="panelCamera" class="space-y-2.5">
                 <div class="relative bg-slate-900 rounded-2xl overflow-hidden aspect-[4/3] flex flex-col justify-center items-center shadow-inner border border-slate-700">
-                    <video id="webcam" autoplay playsinline class="w-full h-full object-cover hidden"></video>
+                    <video id="webcam" autoplay playsinline class="w-full h-full object-cover hidden transition-transform duration-100 ease-out"></video>
                     
                     <div id="cameraPlaceholder" class="flex flex-col items-center text-center p-6 text-slate-400">
                         <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mb-2 text-slate-300">
@@ -95,10 +95,28 @@
                         <div class="scanner-line absolute w-full"></div>
                         <span class="text-[10px] text-white bg-slate-900/80 px-2.5 py-0.5 rounded-full absolute bottom-2 backdrop-blur-sm border border-slate-700">번호판을 사각형 안에 맞추세요</span>
                     </div>
+
+                    <!-- Zoom Overlay Controls (Shown when camera is active) -->
+                    <div id="zoomControls" class="hidden absolute top-2 right-2 bg-slate-900/80 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-2 z-10 shadow-lg">
+                        <i class="fa-solid fa-magnifying-glass-minus text-[11px] text-slate-300"></i>
+                        <input type="range" id="zoomRange" min="1" max="4" step="0.1" value="1" oninput="handleZoomChange(this.value)" class="w-20 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        <i class="fa-solid fa-magnifying-glass-plus text-[11px] text-slate-300"></i>
+                        <span id="zoomLabel" class="text-[10px] font-mono font-bold text-blue-400 min-w-[28px]">1.0x</span>
+                    </div>
                 </div>
 
-                <!-- Camera recognition button when webcam active -->
+                <!-- Camera recognition & quick zoom buttons -->
                 <div id="cameraActionContainer" class="hidden space-y-2">
+                    <div class="flex items-center justify-between bg-slate-200 p-1 rounded-xl text-[11px] font-bold text-slate-600">
+                        <span class="px-2 text-slate-500"><i class="fa-solid fa-[#fa-search-plus] fa-magnifying-glass text-blue-600 mr-1"></i>배율:</span>
+                        <div class="flex gap-1 flex-1 justify-end">
+                            <button onclick="setZoom(1.0)" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-sm hover:bg-blue-50 transition-all font-mono">1.0x</button>
+                            <button onclick="setZoom(1.5)" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-sm hover:bg-blue-50 transition-all font-mono">1.5x</button>
+                            <button onclick="setZoom(2.0)" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-sm hover:bg-blue-50 transition-all font-mono">2.0x</button>
+                            <button onclick="setZoom(3.0)" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-sm hover:bg-blue-50 transition-all font-mono">3.0x</button>
+                        </div>
+                    </div>
+
                     <button onclick="captureAndRecognizeFromCamera()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold py-2.5 px-4 rounded-xl shadow transition-all text-xs flex justify-center items-center gap-2">
                         <i class="fa-solid fa-camera text-amber-300"></i> 📸 AI 번호판 촬영 & 실시간 인식
                     </button>
@@ -223,6 +241,7 @@
         let callLogs = [];
         let mediaStream = null;
         let lastScannedPlate = '';
+        let currentZoom = 1.0;
 
         window.onload = function() {
             const savedDb = localStorage.getItem('parking_safe_db');
@@ -271,7 +290,11 @@
                 document.getElementById('cameraPlaceholder').classList.add('hidden');
                 document.getElementById('scanFrame').classList.remove('hidden');
                 document.getElementById('cameraActionContainer').classList.remove('hidden');
-                showToast("고화질 카메라가 실행되었습니다.");
+                document.getElementById('zoomControls').classList.remove('hidden');
+                
+                // 초기 줌 설정
+                setZoom(1.0);
+                showToast("카메라가 실행되었습니다. 필요시 줌을 조절하세요.");
             } catch (err) {
                 showToast("카메라 접근 실패: 시뮬레이션 버튼을 눌러보세요.");
             }
@@ -286,6 +309,38 @@
             document.getElementById('cameraPlaceholder').classList.remove('hidden');
             document.getElementById('scanFrame').classList.add('hidden');
             document.getElementById('cameraActionContainer').classList.add('hidden');
+            document.getElementById('zoomControls').classList.add('hidden');
+        }
+
+        function setZoom(zoomValue) {
+            document.getElementById('zoomRange').value = zoomValue;
+            handleZoomChange(zoomValue);
+        }
+
+        function handleZoomChange(val) {
+            currentZoom = parseFloat(val);
+            document.getElementById('zoomLabel').innerText = `${currentZoom.toFixed(1)}x`;
+
+            const video = document.getElementById('webcam');
+            
+            // 1. 하드웨어 카메라 광학/디지털 줌 시도
+            if (mediaStream) {
+                const track = mediaStream.getVideoTracks()[0];
+                if (track) {
+                    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+                    if (capabilities.zoom) {
+                        const min = capabilities.zoom.min || 1;
+                        const max = capabilities.zoom.max || 4;
+                        const targetZoom = Math.min(Math.max(currentZoom, min), max);
+                        track.applyConstraints({ advanced: [{ zoom: targetZoom }] })
+                            .catch(err => console.log('Hardware zoom not supported:', err));
+                    }
+                }
+            }
+
+            // 2. CSS 비주얼 프리뷰 Zoom 적용 (소프트웨어 백업)
+            video.style.transform = `scale(${currentZoom})`;
+            video.style.transformOrigin = 'center center';
         }
 
         async function captureAndRecognizeFromCamera() {
@@ -295,16 +350,25 @@
                 return;
             }
 
-            showToast("🔍 모니터/화면 번호판 정밀 분석 중...");
+            showToast(`🔍 ${currentZoom.toFixed(1)}x 확대 영역 분석 중...`);
 
             try {
                 const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                const vWidth = video.videoWidth;
+                const vHeight = video.videoHeight;
+
+                // 줌 비율에 따른 중앙 영역 크롭 크기 산출
+                const cropWidth = vWidth / currentZoom;
+                const cropHeight = vHeight / currentZoom;
+                const startX = (vWidth - cropWidth) / 2;
+                const startY = (vHeight - cropHeight) / 2;
+
+                canvas.width = cropWidth;
+                canvas.height = cropHeight;
                 const ctx = canvas.getContext('2d');
 
-                // 모니터 픽셀 깨짐 방지를 위해 필터 없이 원본 비디오 수신
-                ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+                // 줌된 중앙 영역만 캔버스에 잘라 그려서 AI로 전달
+                ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
                 const base64Image = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
                 await processImageWithGeminiAI(base64Image);
