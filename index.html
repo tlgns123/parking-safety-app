@@ -97,8 +97,15 @@
                     </div>
                 </div>
 
-                <button onclick="triggerMockScan()" class="w-full bg-gradient-to-r from-blue-700 to-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl shadow hover:opacity-95 transition-all text-xs flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> 번호판 자동 인식 시뮬레이션
+                <!-- Camera recognition button when webcam active -->
+                <div id="cameraActionContainer" class="hidden space-y-2">
+                    <button onclick="captureAndRecognizeFromCamera()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold py-2.5 px-4 rounded-xl shadow transition-all text-xs flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-camera text-amber-300"></i> 📸 AI 번호판 촬영 & 실시간 인식
+                    </button>
+                </div>
+
+                <button onclick="triggerMockScan()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-4 rounded-xl transition-all text-xs flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-blue-600"></i> 테스트 시뮬레이션 스캔
                 </button>
             </div>
 
@@ -250,6 +257,7 @@
                 video.classList.remove('hidden');
                 document.getElementById('cameraPlaceholder').classList.add('hidden');
                 document.getElementById('scanFrame').classList.remove('hidden');
+                document.getElementById('cameraActionContainer').classList.remove('hidden');
                 showToast("카메라가 실행되었습니다.");
             } catch (err) {
                 showToast("카메라 접근 실패: 시뮬레이션 버튼을 눌러보세요.");
@@ -264,11 +272,88 @@
             document.getElementById('webcam').classList.add('hidden');
             document.getElementById('cameraPlaceholder').classList.remove('hidden');
             document.getElementById('scanFrame').classList.add('hidden');
+            document.getElementById('cameraActionContainer').classList.add('hidden');
+        }
+
+        async function captureAndRecognizeFromCamera() {
+            const video = document.getElementById('webcam');
+            if (!video || video.classList.contains('hidden') || !video.videoWidth) {
+                showToast("먼저 카메라 권한을 허용하고 카메라를 시작해주세요.");
+                return;
+            }
+
+            showToast("🔍 AI 카메라 프레임 분석 중...");
+
+            try {
+                // Draw current video frame to canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const base64Image = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+                await processImageWithGeminiAI(base64Image);
+            } catch (err) {
+                console.error(err);
+                showToast("카메라 촬영 분석 중 오류가 발생했습니다.");
+            }
+        }
+
+        async function processImageWithGeminiAI(base64Image) {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+            const prompt = "이 이미지에서 대한민국 자동차 번호판 숫자 및 한글 문자를 정확하게 추출해주세요. 다른 어떠한 문장이나 설명 없이 오직 번호판 문자만 출력하세요. 예시: '123가 4568' 또는 '123가4568'";
+
+            const payload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: prompt },
+                            {
+                                inlineData: {
+                                    mimeType: "image/jpeg",
+                                    data: base64Image
+                                }
+                            }
+                        ]
+                    }
+                ]
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const detectedText = result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+
+                if (detectedText) {
+                    // Extract plate-like patterns (e.g. 123가 4568 or 12가 3456)
+                    const cleanPlate = detectedText.replace(/[^0-9가-힣]/g, '');
+                    showToast(`AI 인식 결과: [${detectedText}]`);
+                    
+                    if (cleanPlate.length >= 6) {
+                        searchByPlate(cleanPlate);
+                    } else {
+                        searchByPlate(detectedText);
+                    }
+                } else {
+                    showToast("번호판 문자를 인식하지 못했습니다. 화면을 선명하게 맞춰주세요.");
+                }
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                showToast("AI 인식 중 오류가 발생했습니다.");
+            }
         }
 
         function triggerMockScan() {
             showToast("AI 번호판 인식 분석 중...");
-            // 시범 운영 차량 대상 스캔 시뮬레이션
             const demoCars = carDatabase.filter(c => !c.isMyCar);
             const targetList = demoCars.length > 0 ? demoCars : carDatabase;
             const randomCar = targetList[Math.floor(Math.random() * targetList.length)];
