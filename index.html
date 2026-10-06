@@ -177,12 +177,12 @@
         </main>
 
         <!-- Bottom Navigation Bar -->
-        <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10">
-            <a href="search_page.html" class="flex flex-col items-center gap-1 text-blue-700 font-bold text-[10px] transition-all">
+        <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10" aria-label="하단 메뉴">
+            <a href="index.html" class="flex flex-col items-center gap-1 text-blue-700 font-bold text-[10px] transition-all">
                 <i class="fa-solid fa-magnifying-glass text-lg"></i>
                 <span>차주 연결</span>
             </a>
-            <a href="chat_page.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
+            <a href="talktalk.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
                 <i class="fa-solid fa-comments text-lg"></i>
                 <span>안심 톡톡</span>
             </a>
@@ -317,7 +317,7 @@
             }
 
             addHistoryLog(plate, `안심 톡톡 대화 시작 (${type})`, safeNum, '요청 전달');
-            window.location.href = `chat_page.html?plate=${encodeURIComponent(plate)}`;
+            window.location.href = `talktalk.html?plate=${encodeURIComponent(plate)}`;
         }
 
         function sendQuickSMS(type) {
