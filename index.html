@@ -176,10 +176,15 @@
             </div>
 
             <!-- Not Found Alert -->
-            <div id="searchNotFoundCard" class="hidden bg-slate-100 rounded-2xl p-5 border border-slate-200 text-slate-700 space-y-1.5 text-center animate-fade-in">
+            <div id="searchNotFoundCard" class="hidden bg-slate-100 rounded-2xl p-5 border border-slate-200 text-slate-700 space-y-2 text-center animate-fade-in">
                 <i class="fa-solid fa-circle-info text-2xl text-slate-400"></i>
                 <p class="text-sm font-black text-slate-800">등록되지 않은 차량입니다.</p>
                 <p class="text-[11px] text-slate-500">해당 차량은 파킹안심 서비스에 안심번호가 등록되어 있지 않습니다.</p>
+                <div id="quickAddContainer" class="hidden pt-1">
+                    <button onclick="quickRegisterScannedCar()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2 px-3.5 rounded-xl shadow transition-all">
+                        <i class="fa-solid fa-plus-circle mr-1"></i> 인식된 [<span id="scannedPlateText"></span>] 임시 등록 후 연결하기
+                    </button>
+                </div>
             </div>
         </main>
 
@@ -217,6 +222,7 @@
         let carDatabase = [];
         let callLogs = [];
         let mediaStream = null;
+        let lastScannedPlate = '';
 
         window.onload = function() {
             const savedDb = localStorage.getItem('parking_safe_db');
@@ -289,30 +295,16 @@
                 return;
             }
 
-            showToast("🔍 번호판 중앙 영역 크롭 & AI 정밀 분석 중...");
+            showToast("🔍 모니터/화면 번호판 정밀 분석 중...");
 
             try {
                 const canvas = document.createElement('canvas');
-                
-                // 스캔 프레임 가이드(중앙 영역)에 맞게 크롭 계산 (80% 폭, 50% 높이)
-                const cropWidth = video.videoWidth * 0.85;
-                const cropHeight = video.videoHeight * 0.55;
-                const cropX = (video.videoWidth - cropWidth) / 2;
-                const cropY = (video.videoHeight - cropHeight) / 2;
-
-                canvas.width = cropWidth;
-                canvas.height = cropHeight;
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
 
-                // 선명도 및 명암 대비 보정 필터 적용
-                ctx.filter = 'contrast(1.15) brightness(1.05)';
-                
-                // 비디오 화면에서 중앙 스캔 영역만 크롭하여 드로잉
-                ctx.drawImage(
-                    video, 
-                    cropX, cropY, cropWidth, cropHeight, 
-                    0, 0, cropWidth, cropHeight
-                );
+                // 모니터 픽셀 깨짐 방지를 위해 필터 없이 원본 비디오 수신
+                ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
                 const base64Image = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
                 await processImageWithGeminiAI(base64Image);
@@ -326,18 +318,17 @@
             const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
-            // 한국 자동차 번호판 전용 정밀 프롬프트
-            const prompt = `이 이미지는 대한민국 자동차 번호판 부위를 촬영 및 자른 사진입니다.
-사진 중앙에 가장 크게 보이는 자동차 번호판의 숫자와 한글 문자를 정확하게 읽어주세요.
+            // 모니터/스마트폰 화면 비춤 환경 최적화 프롬프트
+            const prompt = `이 사진은 실물 자동차 번호판이거나 모니터/스마트폰 화면에 비춰진 번호판 사진입니다.
+화면의 빛 반사, 모아레(줄무늬), 각도 차이가 있더라도 사진에 보이는 한국 자동차 번호판의 문자와 숫자를 읽어주세요.
 
-[한국 번호판 형식 참고]
-- 신형: 3자리숫자 + 한글1자 + 4자리숫자 (예: 123가 4567, 234나 8901)
-- 구형: 2자리숫자 + 한글1자 + 4자리숫자 (예: 56노 8910, 77허 1234)
-- 지역명 포함: 지역명 + 숫자 + 한글 + 4자리숫자 (예: 서울12가 3456)
+[한국 번호판 형식]
+- 3자리/2자리 숫자 + 한글 1자 + 4자리 숫자 (예: 123가 4567, 56노 8910, 77허 1234)
+- 지역명 포함 번호판 (예: 서울12가 3456)
 
-[주의사항]
-- 다른 설명, 인삿말, 특수문자 없이 오직 인식된 번호판 문자와 숫자만 출력하세요 (예: '123가 4567' 또는 '56노8910').
-- 차종 브랜드 엠블럼이나 간판 문자 등은 무시하세요.`;
+[지침]
+- 부가 설명 없이 오직 인식된 번호판 문자와 숫자만 출력하세요.
+- 화면 내 다른 엠블럼이나 글자는 무시하고 자동차 번호판만 정밀하게 추출하세요.`;
 
             const payload = {
                 contents: [
@@ -367,9 +358,8 @@
                 const detectedText = result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
                 if (detectedText) {
-                    // 숫자와 한글만 추출
                     const cleanPlate = detectedText.replace(/[^0-9가-힣]/g, '');
-                    showToast(`AI 인식 결과: [${detectedText}]`);
+                    showToast(`AI 인식 성공: [${detectedText}]`);
                     
                     if (cleanPlate.length >= 6) {
                         searchByPlate(cleanPlate);
@@ -377,7 +367,7 @@
                         searchByPlate(detectedText);
                     }
                 } else {
-                    showToast("번호판 문자를 인식하지 못했습니다. 조명을 밝게 하거나 더 가까이 대주세요.");
+                    showToast("번호판을 인식하지 못했습니다. 화면에 더 평평하게 맞춰보세요.");
                 }
             } catch (error) {
                 console.error("Gemini API Error:", error);
@@ -403,10 +393,12 @@
                 return;
             }
             const cleanInput = inputVal.replace(/\s+/g, '').toUpperCase();
+            lastScannedPlate = cleanInput;
             const car = carDatabase.find(c => c.plate.replace(/\s+/g, '') === cleanInput);
 
             const card = document.getElementById('searchResultCard');
             const notFound = document.getElementById('searchNotFoundCard');
+            const quickAdd = document.getElementById('quickAddContainer');
 
             if (car) {
                 document.getElementById('resPlate').innerText = car.plate;
@@ -423,7 +415,28 @@
             } else {
                 card.classList.add('hidden');
                 notFound.classList.remove('hidden');
+                if (quickAdd && lastScannedPlate) {
+                    document.getElementById('scannedPlateText').innerText = lastScannedPlate;
+                    quickAdd.classList.remove('hidden');
+                }
             }
+        }
+
+        function quickRegisterScannedCar() {
+            if (!lastScannedPlate) return;
+            const newCar = {
+                plate: lastScannedPlate,
+                model: '구글 검색 스캔 시범 차량',
+                phone: '010-9999-8888',
+                safeNum: `0504-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
+                note: '실시간 AI 카메라 촬영 차량',
+                isMyCar: false
+            };
+            carDatabase.push(newCar);
+            localStorage.setItem('parking_safe_db', JSON.stringify(carDatabase));
+            renderDemoBadges();
+            searchByPlate(lastScannedPlate);
+            showToast(`[${lastScannedPlate}] 차량이 가상 등록되어 차주 연결이 설정되었습니다.`);
         }
 
         function startDirectChat(type) {
