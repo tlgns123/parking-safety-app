@@ -17,7 +17,6 @@
 
     <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[36px] shadow-2xl flex flex-col justify-between overflow-hidden relative border border-slate-700">
         
-        <!-- App Header -->
         <header class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center z-10 border-b border-slate-800">
             <div class="flex items-center gap-2.5">
                 <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-2 rounded-xl text-lg flex items-center justify-center w-9 h-9 shadow-md">
@@ -33,7 +32,6 @@
             </div>
         </header>
 
-        <!-- Main Content Area -->
         <main class="flex-1 overflow-y-auto relative bg-slate-100 p-4 space-y-3.5" id="mainContent">
             
             <!-- Profile & Safe Status Summary Card -->
@@ -65,7 +63,6 @@
                 </div>
             </div>
 
-            <!-- Car Registration Form -->
             <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                 <div class="border-b border-slate-100 pb-2 flex justify-between items-center">
                     <div>
@@ -98,7 +95,7 @@
                     </div>
 
                     <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">주 주구역 / 안내 메모</label>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">주 거주구역 / 안내 메모</label>
                         <input type="text" id="regNote" placeholder="예: 거주자우선 08번 / 부재시 사이드 해제됨" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
 
@@ -108,7 +105,6 @@
                 </form>
             </div>
 
-            <!-- Registered Cars List -->
             <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
                 <h3 class="text-xs font-bold text-slate-800 flex justify-between items-center">
                     <span><i class="fa-solid fa-list text-blue-600 mr-1"></i>등록된 내 차량 목록</span>
@@ -117,7 +113,6 @@
                 <div id="myCarList" class="space-y-2"></div>
             </div>
 
-            <!-- History Logs -->
             <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
                 <h3 class="text-xs font-bold text-slate-800 flex justify-between items-center">
                     <span><i class="fa-solid fa-clock-rotate-left text-slate-600 mr-1"></i>최근 이용 & 연락 이력</span>
@@ -126,13 +121,12 @@
             </div>
         </main>
 
-        <!-- Bottom Navigation Bar -->
-        <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10">
-            <a href="search_page.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
+        <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10" aria-label="하단 메뉴">
+            <a href="index.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
                 <i class="fa-solid fa-magnifying-glass text-lg"></i>
                 <span>차주 연결</span>
             </a>
-            <a href="chat_page.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
+            <a href="talktalk.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
                 <i class="fa-solid fa-comments text-lg"></i>
                 <span>안심 톡톡</span>
             </a>
@@ -142,14 +136,12 @@
             </a>
         </nav>
 
-        <!-- Toast Notification Box -->
         <div id="toast" class="absolute top-14 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs px-4 py-2.5 rounded-full shadow-xl transition-all opacity-0 pointer-events-none duration-300 z-50 flex items-center gap-2 border border-slate-700">
             <i class="fa-solid fa-circle-check text-emerald-400"></i>
             <span id="toastMsg">알림 메시지</span>
         </div>
     </div>
 
-    <!-- Application Logic -->
     <script>
         let carDatabase = [];
         let callLogs = [];
