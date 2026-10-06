@@ -8,7 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     <style>
-        body { font-family: 'Pretendard', sans-serif; background-color: #0f172a; }
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; background-color: #0f172a; }
         .scanner-line {
             height: 3px;
             background: linear-gradient(90deg, rgba(37,99,235,0) 0%, rgba(37,99,235,1) 50%, rgba(37,99,235,0) 100%);
@@ -31,7 +31,7 @@
     <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[36px] shadow-2xl flex flex-col justify-between overflow-hidden relative border border-slate-700">
         
         <!-- App Header -->
-        <header class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center z-10 border-b border-slate-800">
+        <header class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center z-10 border-b border-slate-800 shrink-0">
             <div class="flex items-center gap-2.5">
                 <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-2 rounded-xl text-lg flex items-center justify-center w-9 h-9 shadow-md">
                     <i class="fa-solid fa-shield-cat"></i>
@@ -39,7 +39,7 @@
                 <div>
                     <div class="flex items-center gap-1.5">
                         <h1 class="font-black text-base tracking-tight text-slate-100">파킹안심</h1>
-                        <span class="text-[9px] bg-blue-900/80 text-blue-300 px-1.5 py-0.2 rounded border border-blue-700/50 font-semibold">차주 연결</span>
+                        <span class="text-[9px] bg-blue-900/80 text-blue-300 px-1.5 py-0.5 rounded border border-blue-700/50 font-semibold">차주 연결</span>
                     </div>
                     <p class="text-[10px] text-slate-400">차량 번호판 인식 & 안심 연결 서비스</p>
                 </div>
@@ -62,7 +62,7 @@
                     </p>
                     <p class="text-[11px] text-blue-200">개인 번호 노출 없이 안심번호로 간편하게 차주를 호출하세요</p>
                 </div>
-                <span class="bg-white/10 text-white text-[10px] px-2 py-1 rounded-lg font-bold border border-white/20">안심 연결</span>
+                <span class="bg-white/10 text-white text-[10px] px-2 py-1 rounded-lg font-bold border border-white/20 whitespace-nowrap">안심 연결</span>
             </div>
 
             <!-- Search Mode Tabs -->
@@ -176,8 +176,8 @@
             </div>
         </main>
 
-        <!-- Bottom Navigation Bar -->
-        <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10" aria-label="하단 메뉴">
+        <!-- Bottom Navigation Bar (External Page Links preserved) -->
+        <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10 shrink-0" aria-label="하단 메뉴">
             <a href="index.html" class="flex flex-col items-center gap-1 text-blue-700 font-bold text-[10px] transition-all">
                 <i class="fa-solid fa-magnifying-glass text-lg"></i>
                 <span>차주 연결</span>
@@ -268,7 +268,11 @@
 
         function triggerMockScan() {
             showToast("AI 번호판 인식 분석 중...");
-            const randomCar = carDatabase[Math.floor(Math.random() * carDatabase.length)];
+            // 시범 운영 차량 대상 스캔 시뮬레이션
+            const demoCars = carDatabase.filter(c => !c.isMyCar);
+            const targetList = demoCars.length > 0 ? demoCars : carDatabase;
+            const randomCar = targetList[Math.floor(Math.random() * targetList.length)];
+            
             setTimeout(() => {
                 searchByPlate(randomCar.plate);
                 showToast(`인식 성공: [${randomCar.plate}]`);
@@ -344,10 +348,24 @@
             localStorage.setItem('parking_safe_logs', JSON.stringify(callLogs));
         }
 
+        /**
+         * 시범 운영 구역 테스트 차량 뱃지 렌더링
+         * (마이페이지에서 사용자가 등록한 차량 isMyCar: true 은 포함시키지 않음)
+         */
         function renderDemoBadges() {
             const container = document.getElementById('demoPlateBadges');
+            if (!container) return;
             container.innerHTML = '';
-            carDatabase.forEach(car => {
+
+            // 내 등록 차량(!isMyCar)만 시범 차량 목록으로 표시
+            const demoCars = carDatabase.filter(car => !car.isMyCar);
+
+            if (demoCars.length === 0) {
+                container.innerHTML = '<span class="text-[10px] text-slate-400">등록된 시범 차량이 없습니다.</span>';
+                return;
+            }
+
+            demoCars.forEach(car => {
                 const badge = document.createElement('button');
                 badge.className = 'bg-slate-100 hover:bg-blue-100 hover:text-blue-800 text-slate-700 text-xs px-2.5 py-1 rounded-lg border border-slate-200 transition-all font-bold';
                 badge.innerText = car.plate;
