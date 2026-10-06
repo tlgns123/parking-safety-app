@@ -251,14 +251,21 @@
 
         async function startCamera() {
             try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                // 고해상도(1080p 이상) 및 후면 카메라 우선 요청
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    } 
+                });
                 const video = document.getElementById('webcam');
                 video.srcObject = mediaStream;
                 video.classList.remove('hidden');
                 document.getElementById('cameraPlaceholder').classList.add('hidden');
                 document.getElementById('scanFrame').classList.remove('hidden');
                 document.getElementById('cameraActionContainer').classList.remove('hidden');
-                showToast("카메라가 실행되었습니다.");
+                showToast("고화질 카메라가 실행되었습니다.");
             } catch (err) {
                 showToast("카메라 접근 실패: 시뮬레이션 버튼을 눌러보세요.");
             }
@@ -282,17 +289,32 @@
                 return;
             }
 
-            showToast("🔍 AI 카메라 프레임 분석 중...");
+            showToast("🔍 번호판 중앙 영역 크롭 & AI 정밀 분석 중...");
 
             try {
-                // Draw current video frame to canvas
                 const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // 스캔 프레임 가이드(중앙 영역)에 맞게 크롭 계산 (80% 폭, 50% 높이)
+                const cropWidth = video.videoWidth * 0.85;
+                const cropHeight = video.videoHeight * 0.55;
+                const cropX = (video.videoWidth - cropWidth) / 2;
+                const cropY = (video.videoHeight - cropHeight) / 2;
 
-                const base64Image = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+                canvas.width = cropWidth;
+                canvas.height = cropHeight;
+                const ctx = canvas.getContext('2d');
+
+                // 선명도 및 명암 대비 보정 필터 적용
+                ctx.filter = 'contrast(1.15) brightness(1.05)';
+                
+                // 비디오 화면에서 중앙 스캔 영역만 크롭하여 드로잉
+                ctx.drawImage(
+                    video, 
+                    cropX, cropY, cropWidth, cropHeight, 
+                    0, 0, cropWidth, cropHeight
+                );
+
+                const base64Image = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
                 await processImageWithGeminiAI(base64Image);
             } catch (err) {
                 console.error(err);
@@ -304,7 +326,18 @@
             const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
 
-            const prompt = "이 이미지에서 대한민국 자동차 번호판 숫자 및 한글 문자를 정확하게 추출해주세요. 다른 어떠한 문장이나 설명 없이 오직 번호판 문자만 출력하세요. 예시: '123가 4568' 또는 '123가4568'";
+            // 한국 자동차 번호판 전용 정밀 프롬프트
+            const prompt = `이 이미지는 대한민국 자동차 번호판 부위를 촬영 및 자른 사진입니다.
+사진 중앙에 가장 크게 보이는 자동차 번호판의 숫자와 한글 문자를 정확하게 읽어주세요.
+
+[한국 번호판 형식 참고]
+- 신형: 3자리숫자 + 한글1자 + 4자리숫자 (예: 123가 4567, 234나 8901)
+- 구형: 2자리숫자 + 한글1자 + 4자리숫자 (예: 56노 8910, 77허 1234)
+- 지역명 포함: 지역명 + 숫자 + 한글 + 4자리숫자 (예: 서울12가 3456)
+
+[주의사항]
+- 다른 설명, 인삿말, 특수문자 없이 오직 인식된 번호판 문자와 숫자만 출력하세요 (예: '123가 4567' 또는 '56노8910').
+- 차종 브랜드 엠블럼이나 간판 문자 등은 무시하세요.`;
 
             const payload = {
                 contents: [
@@ -334,7 +367,7 @@
                 const detectedText = result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
                 if (detectedText) {
-                    // Extract plate-like patterns (e.g. 123가 4568 or 12가 3456)
+                    // 숫자와 한글만 추출
                     const cleanPlate = detectedText.replace(/[^0-9가-힣]/g, '');
                     showToast(`AI 인식 결과: [${detectedText}]`);
                     
@@ -344,7 +377,7 @@
                         searchByPlate(detectedText);
                     }
                 } else {
-                    showToast("번호판 문자를 인식하지 못했습니다. 화면을 선명하게 맞춰주세요.");
+                    showToast("번호판 문자를 인식하지 못했습니다. 조명을 밝게 하거나 더 가까이 대주세요.");
                 }
             } catch (error) {
                 console.error("Gemini API Error:", error);
