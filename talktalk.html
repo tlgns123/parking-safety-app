@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파킹안심 - 안심 톡톡</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background-color: #0f172a; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="flex justify-center items-center min-h-screen sm:py-6">
+
+    <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[844px] sm:max-h-[844px] sm:rounded-[36px] shadow-2xl flex flex-col justify-between overflow-hidden relative border border-slate-700">
+        
+        <!-- App Header -->
+        <header class="bg-slate-900 text-white px-5 py-3.5 flex justify-between items-center z-10 border-b border-slate-800">
+            <div class="flex items-center gap-2.5">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-2 rounded-xl text-lg flex items-center justify-center w-9 h-9 shadow-md">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <h1 class="font-black text-base tracking-tight text-slate-100">파킹안심</h1>
+                        <span class="text-[9px] bg-blue-900/80 text-blue-300 px-1.5 py-0.2 rounded border border-blue-700/50 font-semibold">안심 톡톡</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">실시간 차주 소통 채널</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content View -->
+        <main class="flex-1 overflow-y-auto relative bg-slate-100 p-4 space-y-3" id="mainContent">
+            
+            <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center">
+                <div>
+                    <h2 class="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-comments text-blue-600"></i> 안심 톡톡
+                        <span class="text-[10px] bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">1:1 소통방</span>
+                    </h2>
+                    <p class="text-[11px] text-slate-500 mt-0.5">개인정보 노출 없는 실시간 주차 대화</p>
+                </div>
+            </div>
+
+            <!-- Chat Thread List View -->
+            <div id="chatThreadList" class="space-y-2"></div>
+
+            <!-- Active Chat Room Modal / Container -->
+            <div id="chatActiveWindow" class="hidden bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden flex flex-col h-[480px]">
+                <!-- Chat Header -->
+                <div class="bg-slate-900 text-white p-3 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <button onclick="closeActiveChat()" class="text-slate-400 hover:text-white text-sm pr-1">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <div>
+                            <p class="text-xs font-bold flex items-center gap-1.5" id="activeChatTitle">
+                                <span>123가 4567</span>
+                                <span class="bg-blue-900 text-blue-300 text-[9px] px-1.5 py-0.2 rounded font-mono">0504 연결</span>
+                            </p>
+                            <p class="text-[10px] text-slate-400" id="activeChatSubtitle">차주님과의 대화</p>
+                        </div>
+                    </div>
+                    <button onclick="triggerAutoResponse()" class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                        <i class="fa-solid fa-robot mr-1"></i> 차주 답변 받기
+                    </button>
+                </div>
+
+                <!-- Messages Container -->
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50 text-xs"></div>
+
+                <!-- Quick Response Buttons Bar -->
+                <div class="bg-slate-100 px-2 py-1.5 border-t border-slate-200 flex gap-1 overflow-x-auto text-[10px]">
+                    <button onclick="sendQuickChatMessage('5분 내로 나가겠습니다!')" class="bg-white hover:bg-blue-50 text-slate-700 font-semibold border border-slate-300 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        ⏱️ 5분 내 나갑니다
+                    </button>
+                    <button onclick="sendQuickChatMessage('사이드브레이크 해제해 두었습니다.')" class="bg-white hover:bg-blue-50 text-slate-700 font-semibold border border-slate-300 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        🅿️ 사이드 해제됨
+                    </button>
+                    <button onclick="sendQuickChatMessage('출차 완료되었습니다. 감사합니다!')" class="bg-white hover:bg-blue-50 text-slate-700 font-semibold border border-slate-300 px-2.5 py-1 rounded-full whitespace-nowrap">
+                        ✅ 출차 완료
+                    </button>
+                </div>
+
+                <!-- Input Footer -->
+                <div class="p-2 bg-white border-t border-slate-200 flex gap-2">
+                    <input type="text" id="inputChatMessage" onkeypress="if(event.key==='Enter') sendChatMessage()" placeholder="메시지를 입력하세요..." class="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button onclick="sendChatMessage()" class="bg-blue-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs hover:bg-blue-700">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10">
+            <a href="search_page.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
+                <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                <span>차주 연결</span>
+            </a>
+            <a href="chat_page.html" class="flex flex-col items-center gap-1 text-blue-700 font-bold text-[10px] transition-all">
+                <i class="fa-solid fa-comments text-lg"></i>
+                <span>안심 톡톡</span>
+            </a>
+            <a href="mypage.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
+                <i class="fa-solid fa-user text-lg"></i>
+                <span>마이페이지</span>
+            </a>
+        </nav>
+
+        <!-- Toast Notification Box -->
+        <div id="toast" class="absolute top-14 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white text-xs px-4 py-2.5 rounded-full shadow-xl transition-all opacity-0 pointer-events-none duration-300 z-50 flex items-center gap-2 border border-slate-700">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toastMsg">알림 메시지</span>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        const DEFAULT_CHATS = {
+            '123가4567': [
+                { sender: 'other', text: '안녕하세요, 123가4567 차주입니다.', time: '14:10' },
+                { sender: 'me', text: '안녕하세요! 출차가 필요한데 차량 이동 가능하실까요?', time: '14:11' },
+                { sender: 'other', text: '네! 5분 내로 내려가서 이동 조치해 드리겠습니다.', time: '14:12' }
+            ]
+        };
+
+        let chatThreads = {};
+        let activeChatPlate = null;
+
+        window.onload = function() {
+            const savedChats = localStorage.getItem('parking_safe_chats');
+            chatThreads = savedChats ? JSON.parse(savedChats) : DEFAULT_CHATS;
+            if (!savedChats) localStorage.setItem('parking_safe_chats', JSON.stringify(chatThreads));
+
+            renderChatList();
+
+            // Handle URL query parameter if opened directly from search result
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetPlate = urlParams.get('plate');
+            if (targetPlate && chatThreads[targetPlate]) {
+                openChatThread(targetPlate);
+            }
+        };
+
+        function saveChats() {
+            localStorage.setItem('parking_safe_chats', JSON.stringify(chatThreads));
+        }
+
+        function renderChatList() {
+            const container = document.getElementById('chatThreadList');
+            container.innerHTML = '';
+
+            const plates = Object.keys(chatThreads);
+            if (plates.length === 0) {
+                container.innerHTML = `<div class="bg-white p-6 rounded-2xl text-center text-slate-400 text-xs">개설된 대화방이 없습니다.<br>차주 검색 후 '안심 톡톡'을 시작해 보세요.</div>`;
+                return;
+            }
+
+            const carDatabase = JSON.parse(localStorage.getItem('parking_safe_db') || '[]');
+
+            plates.forEach(plate => {
+                const msgs = chatThreads[plate];
+                const lastMsg = msgs[msgs.length - 1];
+                const car = carDatabase.find(c => c.plate === plate) || { model: '등록 차량', safeNum: '0504 안심번호' };
+
+                const card = document.createElement('div');
+                card.className = 'bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center cursor-pointer hover:border-blue-400 transition-all';
+                card.onclick = () => openChatThread(plate);
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center font-bold text-sm">
+                            <i class="fa-solid fa-car"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-extrabold text-slate-900 text-xs">${plate}</span>
+                                <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded">${car.model}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5 line-clamp-1">${lastMsg ? lastMsg.text : '대화 내용 없음'}</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono">${lastMsg ? lastMsg.time : ''}</span>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openChatThread(plate) {
+            activeChatPlate = plate;
+            const carDatabase = JSON.parse(localStorage.getItem('parking_safe_db') || '[]');
+            const car = carDatabase.find(c => c.plate === plate) || { model: '차주님', safeNum: '0504 가상번호' };
+            
+            document.getElementById('chatThreadList').classList.add('hidden');
+            document.getElementById('chatActiveWindow').classList.remove('hidden');
+            
+            document.getElementById('activeChatTitle').innerHTML = `<span>${plate}</span> <span class="bg-blue-900 text-blue-300 text-[9px] px-1.5 py-0.2 rounded font-mono">${car.safeNum}</span>`;
+            document.getElementById('activeChatSubtitle').innerText = `${car.model} 차주님과의 대화`;
+
+            renderChatMessages();
+        }
+
+        function closeActiveChat() {
+            activeChatPlate = null;
+            document.getElementById('chatActiveWindow').classList.add('hidden');
+            document.getElementById('chatThreadList').classList.remove('hidden');
+            renderChatList();
+        }
+
+        function renderChatMessages() {
+            if (!activeChatPlate || !chatThreads[activeChatPlate]) return;
+
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+
+            chatThreads[activeChatPlate].forEach(msg => {
+                const bubble = document.createElement('div');
+                const isMe = msg.sender === 'me';
+                
+                bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'} mb-1`;
+                bubble.innerHTML = `
+                    <div class="max-w-[80%] space-y-0.5">
+                        <div class="px-3 py-2 rounded-2xl ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none shadow-sm'}">
+                            <p class="text-xs leading-relaxed">${msg.text}</p>
+                        </div>
+                        <p class="text-[9px] text-slate-400 ${isMe ? 'text-right' : 'text-left'} px-1">${msg.time}</p>
+                    </div>
+                `;
+                container.appendChild(bubble);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('inputChatMessage');
+            const text = input.value.trim();
+
+            if (!text || !activeChatPlate) return;
+
+            const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+            
+            if (!chatThreads[activeChatPlate]) chatThreads[activeChatPlate] = [];
+
+            chatThreads[activeChatPlate].push({ sender: 'me', text: text, time: timeStr });
+            saveChats();
+
+            input.value = '';
+            renderChatMessages();
+        }
+
+        function sendQuickChatMessage(presetText) {
+            if (!activeChatPlate) return;
+            document.getElementById('inputChatMessage').value = presetText;
+            sendChatMessage();
+        }
+
+        function triggerAutoResponse() {
+            if (!activeChatPlate) return;
+
+            showToast("차주 답변 수신 중...");
+            const autoReplies = [
+                "알겠습니다! 3분 안에 차 빼러 가겠습니다.",
+                "사이드브레이크 해제되어 있습니다. 밀고 나가셔도 됩니다!",
+                "죄송합니다. 부재 중이라 10분 정도 소요될 것 같습니다.",
+                "네, 알람 확인했습니다. 바로 내려갑니다!"
+            ];
+            const reply = autoReplies[Math.floor(Math.random() * autoReplies.length)];
+
+            setTimeout(() => {
+                const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+                chatThreads[activeChatPlate].push({ sender: 'other', text: reply, time: timeStr });
+                saveChats();
+                renderChatMessages();
+                showToast("차주님으로부터 답변이 도착했습니다.");
+            }, 1000);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { toast.classList.add('opacity-0', 'pointer-events-none'); }, 2500);
+        }
+    </script>
+</body>
+</html>
