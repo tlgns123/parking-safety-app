@@ -97,7 +97,7 @@
                         <span class="text-[10px] text-white bg-slate-900/80 px-2.5 py-0.5 rounded-full absolute bottom-2 backdrop-blur-sm border border-slate-700">번호판을 사각형 안에 맞추세요</span>
                     </div>
 
-                    <!-- Zoom Overlay Controls (Shown when camera is active) -->
+                    <!-- Zoom Overlay Controls -->
                     <div id="zoomControls" class="hidden absolute bottom-2 right-2 bg-slate-900/80 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-slate-700/80 flex items-center gap-2 z-10 shadow-lg">
                         <i class="fa-solid fa-magnifying-glass-minus text-[11px] text-slate-300"></i>
                         <input type="range" id="zoomRange" min="1" max="4" step="0.1" value="1" oninput="handleZoomChange(this.value)" class="w-20 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
@@ -106,7 +106,6 @@
                     </div>
                 </div>
 
-                <!-- Camera recognition & quick zoom buttons -->
                 <div id="cameraActionContainer" class="hidden space-y-2">
                     <div class="flex items-center justify-between bg-slate-200 p-1 rounded-xl text-[11px] font-bold text-slate-600">
                         <span class="px-2 text-slate-500"><i class="fa-solid fa-magnifying-glass text-blue-600 mr-1"></i>배율:</span>
@@ -118,7 +117,7 @@
                         </div>
                     </div>
 
-                    <button onclick="captureAndRecognizeFromCamera()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold py-2.5 px-4 rounded-xl shadow transition-all text-xs flex justify-center items-center gap-2">
+                    <button onclick="triggerMockScan()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 text-white font-bold py-2.5 px-4 rounded-xl shadow transition-all text-xs flex justify-center items-center gap-2">
                         <i class="fa-solid fa-camera text-amber-300"></i> 📸 AI 번호판 촬영 & 실시간 인식
                     </button>
                 </div>
@@ -207,8 +206,8 @@
             </div>
         </main>
 
-        <!-- Bottom Navigation Bar -->
-        <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10 shrink-0" aria-label="하단 메뉴">
+        <!-- Bottom Navigation Bar (4 Linked Files) -->
+        <nav class="bg-white border-t border-slate-200 px-3 py-2 flex justify-around items-center z-10 shrink-0" aria-label="하단 메뉴">
             <a href="index.html" class="flex flex-col items-center gap-1 text-blue-700 font-bold text-[10px] transition-all">
                 <i class="fa-solid fa-magnifying-glass text-lg"></i>
                 <span>차주 연결</span>
@@ -217,9 +216,13 @@
                 <i class="fa-solid fa-comments text-lg"></i>
                 <span>안심 톡톡</span>
             </a>
-            <a href="mypage.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] transition-all">
+            <a href="mypage.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
                 <i class="fa-solid fa-user text-lg"></i>
                 <span>마이페이지</span>
+            </a>
+            <a href="safety_report.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-red-600 transition-all">
+                <i class="fa-solid fa-triangle-exclamation text-lg text-red-500"></i>
+                <span>안전신문고</span>
             </a>
         </nav>
 
@@ -379,7 +382,6 @@
             const w = canvas.width;
             const h = canvas.height;
 
-            // Realistic underground parking garage environment with perspective gradient
             ctx.fillStyle = '#060913';
             ctx.fillRect(0, 0, w, h);
 
@@ -389,31 +391,6 @@
             floorGrad.addColorStop(1, '#090d16');
             ctx.fillStyle = floorGrad;
             ctx.fillRect(0, h * 0.45, w, h * 0.55);
-
-            // Overhead fluorescent tube strip lights
-            [0.2, 0.5, 0.8].forEach(xRatio => {
-                ctx.fillStyle = '#ffffff';
-                ctx.shadowBlur = 40;
-                ctx.shadowColor = 'rgba(186, 230, 253, 0.9)';
-                ctx.fillRect(w * xRatio - 70, h * 0.04, 140, 6);
-                ctx.shadowBlur = 0;
-            });
-
-            // Angular parking structural pillars
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(w * 0.02, h * 0.04, w * 0.14, h * 0.46);
-            ctx.fillRect(w * 0.84, h * 0.04, w * 0.14, h * 0.46);
-            ctx.fillStyle = '#3b82f6';
-            ctx.fillRect(w * 0.02, h * 0.20, w * 0.14, 10);
-            ctx.fillRect(w * 0.84, h * 0.20, w * 0.14, 10);
-
-            // Floor yellow safety guidelines
-            ctx.strokeStyle = 'rgba(234, 179, 8, 0.65)';
-            ctx.lineWidth = 8;
-            ctx.beginPath();
-            ctx.moveTo(w * 0.03, h); ctx.lineTo(w * 0.24, h * 0.45);
-            ctx.moveTo(w * 0.97, h); ctx.lineTo(w * 0.76, h * 0.45);
-            ctx.stroke();
 
             let paintBase = '#f1f5f9';
             let paintDark = '#334155';
@@ -428,7 +405,6 @@
                 paintBase = '#1d4ed8'; paintDark = '#1e3a8a'; paintHighlight = '#60a5fa'; paintShadow = '#0f172a';
             }
 
-            // Ground contact shadow
             const groundShadow = ctx.createRadialGradient(w/2, h * 0.80, w * 0.05, w/2, h * 0.80, w * 0.42);
             groundShadow.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
             groundShadow.addColorStop(0.5, 'rgba(0, 0, 0, 0.6)');
@@ -438,92 +414,6 @@
             ctx.ellipse(w/2, h * 0.80, w * 0.42, 38, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // 1. ROOF & UPPER CABIN STRUCTURE
-            ctx.fillStyle = '#090d16';
-            ctx.beginPath();
-            ctx.moveTo(w * 0.30, h * 0.02);
-            ctx.lineTo(w * 0.70, h * 0.02);
-            ctx.lineTo(w * 0.78, h * 0.16);
-            ctx.lineTo(w * 0.22, h * 0.16);
-            ctx.closePath();
-            ctx.fill();
-
-            // Roof panel metallic highlight
-            ctx.fillStyle = paintDark;
-            ctx.beginPath();
-            ctx.moveTo(w * 0.32, h * 0.03);
-            ctx.lineTo(w * 0.68, h * 0.03);
-            ctx.lineTo(w * 0.76, h * 0.15);
-            ctx.lineTo(w * 0.24, h * 0.15);
-            ctx.closePath();
-            ctx.fill();
-
-            // 2. FRONT WINDSHIELD & A-PILLARS
-            const glassGrad = ctx.createLinearGradient(0, h * 0.15, 0, h * 0.38);
-            glassGrad.addColorStop(0, 'rgba(15, 23, 42, 0.98)');
-            glassGrad.addColorStop(0.5, 'rgba(30, 41, 59, 0.88)');
-            glassGrad.addColorStop(1, 'rgba(51, 65, 85, 0.95)');
-            ctx.fillStyle = glassGrad;
-            ctx.beginPath();
-            ctx.moveTo(w * 0.22, h * 0.16);
-            ctx.lineTo(w * 0.78, h * 0.16);
-            ctx.lineTo(w * 0.84, h * 0.38);
-            ctx.lineTo(w * 0.16, h * 0.38);
-            ctx.closePath();
-            ctx.fill();
-
-            // Windshield diagonal reflection glare
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
-            ctx.lineWidth = 14;
-            ctx.beginPath();
-            ctx.moveTo(w * 0.28, h * 0.16);
-            ctx.lineTo(w * 0.48, h * 0.38);
-            ctx.stroke();
-
-            // Windshield wipers at the base
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 6;
-            ctx.beginPath();
-            ctx.moveTo(w * 0.50, h * 0.37); ctx.lineTo(w * 0.22, h * 0.35);
-            ctx.moveTo(w * 0.52, h * 0.37); ctx.lineTo(w * 0.78, h * 0.35);
-            ctx.stroke();
-
-            // Rearview mirror inside windshield
-            ctx.fillStyle = '#0f172a';
-            ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(w * 0.46, h * 0.24, w * 0.08, h * 0.04, 4);
-            ctx.fill();
-            ctx.stroke();
-
-            // 3. SIDE MIRRORS (Extending left and right)
-            const drawSideMirror = (isLeft) => {
-                ctx.save();
-                ctx.fillStyle = paintDark;
-                ctx.strokeStyle = '#020617';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                if (isLeft) {
-                    ctx.moveTo(w * 0.16, h * 0.40);
-                    ctx.lineTo(w * 0.06, h * 0.44);
-                    ctx.lineTo(w * 0.06, h * 0.52);
-                    ctx.lineTo(w * 0.16, h * 0.46);
-                } else {
-                    ctx.moveTo(w * 0.84, h * 0.40);
-                    ctx.lineTo(w * 0.94, h * 0.44);
-                    ctx.lineTo(w * 0.94, h * 0.52);
-                    ctx.lineTo(w * 0.84, h * 0.46);
-                }
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-            };
-            drawSideMirror(true);
-            drawSideMirror(false);
-
-            // 4. HOOD & FRONT FENDERS BODY PANEL
             const hoodGrad = ctx.createLinearGradient(0, h * 0.38, 0, h * 0.80);
             hoodGrad.addColorStop(0, paintHighlight);
             hoodGrad.addColorStop(0.12, paintBase);
@@ -542,69 +432,11 @@
             ctx.closePath();
             ctx.fill();
 
-            // Hood Power Crease Lines (Muscle styling)
-            ctx.strokeStyle = paintDark;
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(w * 0.40, h * 0.40); ctx.lineTo(w * 0.44, h * 0.68);
-            ctx.moveTo(w * 0.60, h * 0.40); ctx.lineTo(w * 0.56, h * 0.68);
-            ctx.stroke();
-
-            // Front Grille & Air Intake
-            ctx.fillStyle = '#090d16';
-            ctx.strokeStyle = '#475569';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.roundRect(w * 0.26, h * 0.54, w * 0.48, h * 0.18, 10);
-            ctx.fill();
-            ctx.stroke();
-
-            // Lower Bumper Lip Splitter
-            ctx.fillStyle = '#020617';
-            ctx.beginPath();
-            ctx.moveTo(w * 0.15, h * 0.80);
-            ctx.lineTo(w * 0.85, h * 0.80);
-            ctx.lineTo(w * 0.82, h * 0.86);
-            ctx.lineTo(w * 0.18, h * 0.86);
-            ctx.closePath();
-            ctx.fill();
-
-            // 5. HEADLIGHT ASSEMBLIES
-            const drawAngularHeadlight = (isLeft) => {
-                const cx = isLeft ? w * 0.20 : w * 0.80;
-                ctx.save();
-                ctx.translate(cx, h * 0.50);
-                ctx.fillStyle = '#020617';
-                ctx.strokeStyle = '#64748b';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                if (isLeft) {
-                    ctx.moveTo(-50, -16); ctx.lineTo(50, -22); ctx.lineTo(45, 16); ctx.lineTo(-45, 22);
-                } else {
-                    ctx.moveTo(50, -16); ctx.lineTo(-50, -22); ctx.lineTo(-45, 16); ctx.lineTo(45, 22);
-                }
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-
-                // LED DRL strip
-                ctx.fillStyle = '#93c5fd';
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#60a5fa';
-                ctx.fillRect(isLeft ? -40 : 10, -10, 30, 4);
-                ctx.shadowBlur = 0;
-                ctx.restore();
-            };
-            drawAngularHeadlight(true);
-            drawAngularHeadlight(false);
-
-            // 6. LICENSE PLATE & TYPOGRAPHY
             const plateW = w * 0.36;
             const plateH = h * 0.10;
             const plateX = w * 0.5 - plateW / 2;
             const plateY = h * 0.68;
 
-            // Plate mounting black frame
             ctx.fillStyle = '#000000';
             ctx.beginPath();
             ctx.roundRect(plateX - 8, plateY - 6, plateW + 16, plateH + 12, 10);
@@ -626,25 +458,12 @@
             ctx.roundRect(plateX, plateY, plateW, plateH, 6);
             ctx.fill();
 
-            // Plate bolts
-            [plateX + 16, plateX + plateW - 16].forEach(bx => {
-                ctx.fillStyle = '#94a3b8';
-                ctx.beginPath();
-                ctx.arc(bx, plateY + plateH / 2, 5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.strokeStyle = '#475569';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-            });
-
-            // Plate typography
             ctx.fillStyle = isEV ? '#ffffff' : '#0f172a';
             ctx.font = '900 36px "Pretendard", -apple-system, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(car.plate, plateX + plateW / 2, plateY + plateH / 2 + 2);
 
-            // AI Computer Vision Bounding Box
             ctx.strokeStyle = '#10b981';
             ctx.lineWidth = 4;
             const px = plateX - 14;
@@ -657,12 +476,6 @@
             ctx.beginPath(); ctx.moveTo(px + pw - len, py); ctx.lineTo(px + pw, py); ctx.lineTo(px + pw, py + len); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(px, py + ph - len); ctx.lineTo(px, py + ph); ctx.lineTo(px + len, py + ph); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(px + pw - len, py + ph); ctx.lineTo(px + pw, py + ph); ctx.lineTo(px + pw, py + ph - len); ctx.stroke();
-
-            // HUD label above plate
-            ctx.fillStyle = '#10b981';
-            ctx.font = '700 14px monospace';
-            ctx.textAlign = 'left';
-            ctx.fillText(`PLATE_OCR: 99.8% [${car.plate}]`, px, py - 10);
         }
 
         function triggerMockScan() {
@@ -774,7 +587,7 @@
             const safeNum = document.getElementById('resSafeNum')?.innerText || '미등록';
             addHistoryLog(plate, '2차 주차 단속 민원 접수', safeNum, '단속반 접수');
             showToast("🚨 주차 민원이 접수되었습니다.");
-            setTimeout(() => { window.location.href = 'mypage.html'; }, 1200);
+            setTimeout(() => { window.location.href = 'safety_report.html'; }, 1200);
         }
 
         function addHistoryLog(plate, action, safeNum, status) {
@@ -789,7 +602,6 @@
             container.innerHTML = '';
 
             const demoCars = carDatabase.slice(0, 3);
-
             if (demoCars.length === 0) {
                 container.innerHTML = '<span class="text-[10px] text-slate-400">등록된 시범 차량이 없습니다.</span>';
                 return;
