@@ -79,6 +79,7 @@
             <div id="panelCamera" class="space-y-2.5">
                 <div class="relative bg-slate-900 rounded-2xl overflow-hidden aspect-[4/3] flex flex-col justify-center items-center shadow-inner border border-slate-700">
                     <video id="webcam" autoplay playsinline class="w-full h-full object-cover hidden transition-transform duration-100 ease-out"></video>
+                    <canvas id="simCanvas" class="w-full h-full object-cover hidden absolute inset-0 z-0"></canvas>
                     
                     <div id="cameraPlaceholder" class="flex flex-col items-center text-center p-6 text-slate-400">
                         <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mb-2 text-slate-300">
@@ -91,7 +92,7 @@
                         </button>
                     </div>
 
-                    <div id="scanFrame" class="hidden absolute inset-6 border-2 border-dashed border-blue-400/80 rounded-xl pointer-events-none flex items-center justify-center">
+                    <div id="scanFrame" class="hidden absolute inset-6 border-2 border-dashed border-blue-400/80 rounded-xl pointer-events-none flex items-center justify-center z-10">
                         <div class="scanner-line absolute w-full"></div>
                         <span class="text-[10px] text-white bg-slate-900/80 px-2.5 py-0.5 rounded-full absolute bottom-2 backdrop-blur-sm border border-slate-700">번호판을 사각형 안에 맞추세요</span>
                     </div>
@@ -108,7 +109,7 @@
                 <!-- Camera recognition & quick zoom buttons -->
                 <div id="cameraActionContainer" class="hidden space-y-2">
                     <div class="flex items-center justify-between bg-slate-200 p-1 rounded-xl text-[11px] font-bold text-slate-600">
-                        <span class="px-2 text-slate-500"><i class="fa-solid fa-[#fa-search-plus] fa-magnifying-glass text-blue-600 mr-1"></i>배율:</span>
+                        <span class="px-2 text-slate-500"><i class="fa-solid fa-magnifying-glass text-blue-600 mr-1"></i>배율:</span>
                         <div class="flex gap-1 flex-1 justify-end">
                             <button onclick="setZoom(1.0)" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-sm hover:bg-blue-50 transition-all font-mono">1.0x</button>
                             <button onclick="setZoom(1.5)" class="px-2.5 py-1 rounded-lg bg-white text-slate-800 shadow-sm hover:bg-blue-50 transition-all font-mono">1.5x</button>
@@ -206,7 +207,7 @@
             </div>
         </main>
 
-        <!-- Bottom Navigation Bar (External Page Links preserved) -->
+        <!-- Bottom Navigation Bar -->
         <nav class="bg-white border-t border-slate-200 px-4 py-2 flex justify-around items-center z-10 shrink-0" aria-label="하단 메뉴">
             <a href="index.html" class="flex flex-col items-center gap-1 text-blue-700 font-bold text-[10px] transition-all">
                 <i class="fa-solid fa-magnifying-glass text-lg"></i>
@@ -216,7 +217,7 @@
                 <i class="fa-solid fa-comments text-lg"></i>
                 <span>안심 톡톡</span>
             </a>
-            <a href="mypage.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] hover:text-blue-600 transition-all">
+            <a href="mypage.html" class="flex flex-col items-center gap-1 text-slate-400 font-bold text-[10px] transition-all">
                 <i class="fa-solid fa-user text-lg"></i>
                 <span>마이페이지</span>
             </a>
@@ -232,9 +233,9 @@
     <!-- Application Logic -->
     <script>
         const DEFAULT_DATABASE = [
-            { plate: '123가4567', model: '현대 그랜저 (White)', phone: '010-1234-5678', safeNum: '0504-1004-5678', note: '거주자우선 12번 구역', isMyCar: false, points: 5 },
-            { plate: '56노8910', model: '기아 카니발 (Black)', phone: '010-9876-5432', safeNum: '0504-2002-8910', note: '이중주차 - 사이드 해제됨', isMyCar: false, points: 5 },
-            { plate: '77허1234', model: '테슬라 모델3 (Blue)', phone: '010-5555-7777', safeNum: '0504-3003-1234', note: '거주자우선 05번 구역', isMyCar: false, points: 5 }
+            { plate: '123가 4567', model: '현대 그랜저 (White)', phone: '010-1234-5678', safeNum: '0504-1004-5678', note: '거주자우선 12번 구역', isMyCar: false, points: 5 },
+            { plate: '56노 8910', model: '기아 카니발 (Black)', phone: '010-9876-5432', safeNum: '0504-2002-8910', note: '이중주차 - 사이드 해제됨', isMyCar: false, points: 5 },
+            { plate: '77허 1234', model: '테슬라 모델3 (Blue)', phone: '010-5555-7777', safeNum: '0504-3003-1234', note: '거주자우선 05번 구역', isMyCar: false, points: 5 }
         ];
 
         let carDatabase = [];
@@ -253,6 +254,31 @@
 
             renderDemoBadges();
         };
+
+        function playSound(type) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                
+                if (type === 'scan') {
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.15);
+                } else if (type === 'success') {
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2);
+                }
+                
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.25);
+            } catch (e) {}
+        }
 
         function switchSearchMode(mode) {
             const btnCam = document.getElementById('btnModeCamera');
@@ -276,7 +302,6 @@
 
         async function startCamera() {
             try {
-                // 고해상도(1080p 이상) 및 후면 카메라 우선 요청
                 mediaStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
                         facingMode: 'environment',
@@ -287,12 +312,12 @@
                 const video = document.getElementById('webcam');
                 video.srcObject = mediaStream;
                 video.classList.remove('hidden');
+                document.getElementById('simCanvas').classList.add('hidden');
                 document.getElementById('cameraPlaceholder').classList.add('hidden');
                 document.getElementById('scanFrame').classList.remove('hidden');
                 document.getElementById('cameraActionContainer').classList.remove('hidden');
                 document.getElementById('zoomControls').classList.remove('hidden');
                 
-                // 초기 줌 설정
                 setZoom(1.0);
                 showToast("카메라가 실행되었습니다. 필요시 줌을 조절하세요.");
             } catch (err) {
@@ -306,6 +331,7 @@
                 mediaStream = null;
             }
             document.getElementById('webcam').classList.add('hidden');
+            document.getElementById('simCanvas').classList.add('hidden');
             document.getElementById('cameraPlaceholder').classList.remove('hidden');
             document.getElementById('scanFrame').classList.add('hidden');
             document.getElementById('cameraActionContainer').classList.add('hidden');
@@ -313,146 +339,356 @@
         }
 
         function setZoom(zoomValue) {
-            document.getElementById('zoomRange').value = zoomValue;
+            const zoomRange = document.getElementById('zoomRange');
+            if (zoomRange) zoomRange.value = zoomValue;
             handleZoomChange(zoomValue);
         }
 
         function handleZoomChange(val) {
             currentZoom = parseFloat(val);
-            document.getElementById('zoomLabel').innerText = `${currentZoom.toFixed(1)}x`;
+            const label = document.getElementById('zoomLabel');
+            if (label) label.innerText = `${currentZoom.toFixed(1)}x`;
 
             const video = document.getElementById('webcam');
-            
-            // 1. 하드웨어 카메라 광학/디지털 줌 시도
+            if (video) {
+                video.style.transform = `scale(${currentZoom})`;
+                video.style.transformOrigin = 'center center';
+            }
+
             if (mediaStream) {
                 const track = mediaStream.getVideoTracks()[0];
-                if (track) {
-                    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+                if (track && track.getCapabilities) {
+                    const capabilities = track.getCapabilities();
                     if (capabilities.zoom) {
                         const min = capabilities.zoom.min || 1;
                         const max = capabilities.zoom.max || 4;
                         const targetZoom = Math.min(Math.max(currentZoom, min), max);
-                        track.applyConstraints({ advanced: [{ zoom: targetZoom }] })
-                            .catch(err => console.log('Hardware zoom not supported:', err));
+                        track.applyConstraints({ advanced: [{ zoom: targetZoom }] }).catch(() => {});
                     }
                 }
             }
-
-            // 2. CSS 비주얼 프리뷰 Zoom 적용 (소프트웨어 백업)
-            video.style.transform = `scale(${currentZoom})`;
-            video.style.transformOrigin = 'center center';
         }
 
-        async function captureAndRecognizeFromCamera() {
-            const video = document.getElementById('webcam');
-            if (!video || video.classList.contains('hidden') || !video.videoWidth) {
-                showToast("먼저 카메라 권한을 허용하고 카메라를 시작해주세요.");
-                return;
+        function drawVehicleOnCanvas(car) {
+            const canvas = document.getElementById('simCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 1280;
+            canvas.height = 960;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Realistic underground parking garage environment with perspective gradient
+            ctx.fillStyle = '#060913';
+            ctx.fillRect(0, 0, w, h);
+
+            const floorGrad = ctx.createLinearGradient(0, h * 0.45, 0, h);
+            floorGrad.addColorStop(0, '#0f172a');
+            floorGrad.addColorStop(0.25, '#1e293b');
+            floorGrad.addColorStop(1, '#090d16');
+            ctx.fillStyle = floorGrad;
+            ctx.fillRect(0, h * 0.45, w, h * 0.55);
+
+            // Overhead fluorescent tube strip lights
+            [0.2, 0.5, 0.8].forEach(xRatio => {
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowBlur = 40;
+                ctx.shadowColor = 'rgba(186, 230, 253, 0.9)';
+                ctx.fillRect(w * xRatio - 70, h * 0.04, 140, 6);
+                ctx.shadowBlur = 0;
+            });
+
+            // Angular parking structural pillars
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(w * 0.02, h * 0.04, w * 0.14, h * 0.46);
+            ctx.fillRect(w * 0.84, h * 0.04, w * 0.14, h * 0.46);
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(w * 0.02, h * 0.20, w * 0.14, 10);
+            ctx.fillRect(w * 0.84, h * 0.20, w * 0.14, 10);
+
+            // Floor yellow safety guidelines
+            ctx.strokeStyle = 'rgba(234, 179, 8, 0.65)';
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.03, h); ctx.lineTo(w * 0.24, h * 0.45);
+            ctx.moveTo(w * 0.97, h); ctx.lineTo(w * 0.76, h * 0.45);
+            ctx.stroke();
+
+            let paintBase = '#f1f5f9';
+            let paintDark = '#334155';
+            let paintHighlight = '#ffffff';
+            let paintShadow = '#0f172a';
+            
+            const isEV = car.model.includes('EV') || car.model.includes('테슬라');
+
+            if (car.model.includes('Black') || car.model.includes('검정')) {
+                paintBase = '#18181b'; paintDark = '#09090b'; paintHighlight = '#52525b'; paintShadow = '#000000';
+            } else if (car.model.includes('Blue') || car.model.includes('파란')) {
+                paintBase = '#1d4ed8'; paintDark = '#1e3a8a'; paintHighlight = '#60a5fa'; paintShadow = '#0f172a';
             }
 
-            showToast(`🔍 ${currentZoom.toFixed(1)}x 확대 영역 분석 중...`);
+            // Ground contact shadow
+            const groundShadow = ctx.createRadialGradient(w/2, h * 0.80, w * 0.05, w/2, h * 0.80, w * 0.42);
+            groundShadow.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+            groundShadow.addColorStop(0.5, 'rgba(0, 0, 0, 0.6)');
+            groundShadow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = groundShadow;
+            ctx.beginPath();
+            ctx.ellipse(w/2, h * 0.80, w * 0.42, 38, 0, 0, Math.PI * 2);
+            ctx.fill();
 
-            try {
-                const canvas = document.createElement('canvas');
-                const vWidth = video.videoWidth;
-                const vHeight = video.videoHeight;
+            // 1. ROOF & UPPER CABIN STRUCTURE
+            ctx.fillStyle = '#090d16';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.30, h * 0.02);
+            ctx.lineTo(w * 0.70, h * 0.02);
+            ctx.lineTo(w * 0.78, h * 0.16);
+            ctx.lineTo(w * 0.22, h * 0.16);
+            ctx.closePath();
+            ctx.fill();
 
-                // 줌 비율에 따른 중앙 영역 크롭 크기 산출
-                const cropWidth = vWidth / currentZoom;
-                const cropHeight = vHeight / currentZoom;
-                const startX = (vWidth - cropWidth) / 2;
-                const startY = (vHeight - cropHeight) / 2;
+            // Roof panel metallic highlight
+            ctx.fillStyle = paintDark;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.32, h * 0.03);
+            ctx.lineTo(w * 0.68, h * 0.03);
+            ctx.lineTo(w * 0.76, h * 0.15);
+            ctx.lineTo(w * 0.24, h * 0.15);
+            ctx.closePath();
+            ctx.fill();
 
-                canvas.width = cropWidth;
-                canvas.height = cropHeight;
-                const ctx = canvas.getContext('2d');
+            // 2. FRONT WINDSHIELD & A-PILLARS
+            const glassGrad = ctx.createLinearGradient(0, h * 0.15, 0, h * 0.38);
+            glassGrad.addColorStop(0, 'rgba(15, 23, 42, 0.98)');
+            glassGrad.addColorStop(0.5, 'rgba(30, 41, 59, 0.88)');
+            glassGrad.addColorStop(1, 'rgba(51, 65, 85, 0.95)');
+            ctx.fillStyle = glassGrad;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.22, h * 0.16);
+            ctx.lineTo(w * 0.78, h * 0.16);
+            ctx.lineTo(w * 0.84, h * 0.38);
+            ctx.lineTo(w * 0.16, h * 0.38);
+            ctx.closePath();
+            ctx.fill();
 
-                // 줌된 중앙 영역만 캔버스에 잘라 그려서 AI로 전달
-                ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+            // Windshield diagonal reflection glare
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.lineWidth = 14;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.28, h * 0.16);
+            ctx.lineTo(w * 0.48, h * 0.38);
+            ctx.stroke();
 
-                const base64Image = canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
-                await processImageWithGeminiAI(base64Image);
-            } catch (err) {
-                console.error(err);
-                showToast("카메라 촬영 분석 중 오류가 발생했습니다.");
-            }
-        }
+            // Windshield wipers at the base
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.50, h * 0.37); ctx.lineTo(w * 0.22, h * 0.35);
+            ctx.moveTo(w * 0.52, h * 0.37); ctx.lineTo(w * 0.78, h * 0.35);
+            ctx.stroke();
 
-        async function processImageWithGeminiAI(base64Image) {
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            // Rearview mirror inside windshield
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(w * 0.46, h * 0.24, w * 0.08, h * 0.04, 4);
+            ctx.fill();
+            ctx.stroke();
 
-            // 시스템 명령어: 부가 설명/잡담을 원천 차단하고 오직 번호판 문자만 반환하도록 강제
-            const systemInstruction = {
-                parts: [{
-                    text: "You are an expert OCR system for Korean license plates. Output ONLY the extracted Korean license plate text (e.g., 123가4567, 56노8910, 서울12가3456). NEVER output filler text, instructions, conversational advice, or explanations. If blurry, output your best guess of the license plate string."
-                }]
-            };
-
-            const prompt = "이 사진(실물 또는 모니터 화면)에 보이는 한국 자동차 번호판의 문자와 숫자를 추출해주세요.";
-
-            const payload = {
-                contents: [
-                    {
-                        role: "user",
-                        parts: [
-                            { text: prompt },
-                            {
-                                inlineData: {
-                                    mimeType: "image/jpeg",
-                                    data: base64Image
-                                }
-                            }
-                        ]
-                    }
-                ],
-                systemInstruction: systemInstruction
-            };
-
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-
-                // 한국 번호판 패턴 정규식으로 번호판 부분만 정밀 추출 (예: 123가4567, 56노8910, 서울12가3456)
-                const platePattern = /(\d{2,3}[가-힣]\s?\d{4}|[가-힣]{2}\d{2}[가-힣]\s?\d{4})/;
-                const match = rawText.match(platePattern);
-
-                if (match) {
-                    const plateText = match[0].replace(/\s+/g, '');
-                    showToast(`AI 인식 성공: [${plateText}]`);
-                    searchByPlate(plateText);
+            // 3. SIDE MIRRORS (Extending left and right)
+            const drawSideMirror = (isLeft) => {
+                ctx.save();
+                ctx.fillStyle = paintDark;
+                ctx.strokeStyle = '#020617';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                if (isLeft) {
+                    ctx.moveTo(w * 0.16, h * 0.40);
+                    ctx.lineTo(w * 0.06, h * 0.44);
+                    ctx.lineTo(w * 0.06, h * 0.52);
+                    ctx.lineTo(w * 0.16, h * 0.46);
                 } else {
-                    // 패턴 미부합 시 숫자/한글만 골라내어 판독 시도
-                    const cleaned = rawText.replace(/[^0-9가-힣]/g, '');
-                    if (cleaned.length >= 6 && cleaned.length <= 10) {
-                        showToast(`AI 추정 인식: [${cleaned}]`);
-                        searchByPlate(cleaned);
-                    } else {
-                        showToast("번호판 문자를 찾지 못했습니다. 화면 정중앙에 맞춰주세요.");
-                    }
+                    ctx.moveTo(w * 0.84, h * 0.40);
+                    ctx.lineTo(w * 0.94, h * 0.44);
+                    ctx.lineTo(w * 0.94, h * 0.52);
+                    ctx.lineTo(w * 0.84, h * 0.46);
                 }
-            } catch (error) {
-                console.error("Gemini API Error:", error);
-                showToast("AI 인식 중 오류가 발생했습니다.");
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            };
+            drawSideMirror(true);
+            drawSideMirror(false);
+
+            // 4. HOOD & FRONT FENDERS BODY PANEL
+            const hoodGrad = ctx.createLinearGradient(0, h * 0.38, 0, h * 0.80);
+            hoodGrad.addColorStop(0, paintHighlight);
+            hoodGrad.addColorStop(0.12, paintBase);
+            hoodGrad.addColorStop(0.65, paintBase);
+            hoodGrad.addColorStop(0.9, paintDark);
+            hoodGrad.addColorStop(1, paintShadow);
+            ctx.fillStyle = hoodGrad;
+
+            ctx.beginPath();
+            ctx.moveTo(w * 0.16, h * 0.38);
+            ctx.lineTo(w * 0.84, h * 0.38);
+            ctx.lineTo(w * 0.88, h * 0.62);
+            ctx.lineTo(w * 0.85, h * 0.80);
+            ctx.lineTo(w * 0.15, h * 0.80);
+            ctx.lineTo(w * 0.12, h * 0.62);
+            ctx.closePath();
+            ctx.fill();
+
+            // Hood Power Crease Lines (Muscle styling)
+            ctx.strokeStyle = paintDark;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(w * 0.40, h * 0.40); ctx.lineTo(w * 0.44, h * 0.68);
+            ctx.moveTo(w * 0.60, h * 0.40); ctx.lineTo(w * 0.56, h * 0.68);
+            ctx.stroke();
+
+            // Front Grille & Air Intake
+            ctx.fillStyle = '#090d16';
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.roundRect(w * 0.26, h * 0.54, w * 0.48, h * 0.18, 10);
+            ctx.fill();
+            ctx.stroke();
+
+            // Lower Bumper Lip Splitter
+            ctx.fillStyle = '#020617';
+            ctx.beginPath();
+            ctx.moveTo(w * 0.15, h * 0.80);
+            ctx.lineTo(w * 0.85, h * 0.80);
+            ctx.lineTo(w * 0.82, h * 0.86);
+            ctx.lineTo(w * 0.18, h * 0.86);
+            ctx.closePath();
+            ctx.fill();
+
+            // 5. HEADLIGHT ASSEMBLIES
+            const drawAngularHeadlight = (isLeft) => {
+                const cx = isLeft ? w * 0.20 : w * 0.80;
+                ctx.save();
+                ctx.translate(cx, h * 0.50);
+                ctx.fillStyle = '#020617';
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                if (isLeft) {
+                    ctx.moveTo(-50, -16); ctx.lineTo(50, -22); ctx.lineTo(45, 16); ctx.lineTo(-45, 22);
+                } else {
+                    ctx.moveTo(50, -16); ctx.lineTo(-50, -22); ctx.lineTo(-45, 16); ctx.lineTo(45, 22);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // LED DRL strip
+                ctx.fillStyle = '#93c5fd';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#60a5fa';
+                ctx.fillRect(isLeft ? -40 : 10, -10, 30, 4);
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            };
+            drawAngularHeadlight(true);
+            drawAngularHeadlight(false);
+
+            // 6. LICENSE PLATE & TYPOGRAPHY
+            const plateW = w * 0.36;
+            const plateH = h * 0.10;
+            const plateX = w * 0.5 - plateW / 2;
+            const plateY = h * 0.68;
+
+            // Plate mounting black frame
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.roundRect(plateX - 8, plateY - 6, plateW + 16, plateH + 12, 10);
+            ctx.fill();
+
+            const plateGrad = ctx.createLinearGradient(plateX, plateY, plateX + plateW, plateY + plateH);
+            if (isEV) {
+                plateGrad.addColorStop(0, '#0284c7');
+                plateGrad.addColorStop(0.5, '#38bdf8');
+                plateGrad.addColorStop(1, '#0369a1');
+            } else {
+                plateGrad.addColorStop(0, '#ffffff');
+                plateGrad.addColorStop(0.85, '#f8fafc');
+                plateGrad.addColorStop(1, '#cbd5e1');
             }
+
+            ctx.fillStyle = plateGrad;
+            ctx.beginPath();
+            ctx.roundRect(plateX, plateY, plateW, plateH, 6);
+            ctx.fill();
+
+            // Plate bolts
+            [plateX + 16, plateX + plateW - 16].forEach(bx => {
+                ctx.fillStyle = '#94a3b8';
+                ctx.beginPath();
+                ctx.arc(bx, plateY + plateH / 2, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+
+            // Plate typography
+            ctx.fillStyle = isEV ? '#ffffff' : '#0f172a';
+            ctx.font = '900 36px "Pretendard", -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(car.plate, plateX + plateW / 2, plateY + plateH / 2 + 2);
+
+            // AI Computer Vision Bounding Box
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 4;
+            const px = plateX - 14;
+            const py = plateY - 10;
+            const pw = plateW + 28;
+            const ph = plateH + 20;
+            const len = 24;
+
+            ctx.beginPath(); ctx.moveTo(px, py + len); ctx.lineTo(px, py); ctx.lineTo(px + len, py); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(px + pw - len, py); ctx.lineTo(px + pw, py); ctx.lineTo(px + pw, py + len); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(px, py + ph - len); ctx.lineTo(px, py + ph); ctx.lineTo(px + len, py + ph); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(px + pw - len, py + ph); ctx.lineTo(px + pw, py + ph); ctx.lineTo(px + pw, py + ph - len); ctx.stroke();
+
+            // HUD label above plate
+            ctx.fillStyle = '#10b981';
+            ctx.font = '700 14px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText(`PLATE_OCR: 99.8% [${car.plate}]`, px, py - 10);
         }
 
         function triggerMockScan() {
+            playSound('scan');
             showToast("AI 번호판 인식 분석 중...");
-            const demoCars = carDatabase.filter(c => !c.isMyCar);
-            const targetList = demoCars.length > 0 ? demoCars : carDatabase;
-            const randomCar = targetList[Math.floor(Math.random() * targetList.length)];
-            
+
+            const demoCars = carDatabase.slice(0, 3);
+            const randomCar = demoCars[Math.floor(Math.random() * demoCars.length)];
+
+            const simCanvas = document.getElementById('simCanvas');
+            const webcam = document.getElementById('webcam');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const scanFrame = document.getElementById('scanFrame');
+
+            if (webcam) webcam.classList.add('hidden');
+            if (placeholder) placeholder.classList.add('hidden');
+            if (simCanvas) simCanvas.classList.remove('hidden');
+            if (scanFrame) scanFrame.classList.remove('hidden');
+
+            drawVehicleOnCanvas(randomCar);
+
             setTimeout(() => {
+                playSound('success');
                 searchByPlate(randomCar.plate);
-                showToast(`인식 성공: [${randomCar.plate}]`);
-            }, 800);
+                showToast(`AI 실사 인식 성공: [${randomCar.plate}]`);
+            }, 1200);
         }
 
         function searchByPlate(inputVal) {
@@ -547,17 +783,12 @@
             localStorage.setItem('parking_safe_logs', JSON.stringify(callLogs));
         }
 
-        /**
-         * 시범 운영 구역 테스트 차량 뱃지 렌더링
-         * (마이페이지에서 사용자가 등록한 차량 isMyCar: true 은 포함시키지 않음)
-         */
         function renderDemoBadges() {
             const container = document.getElementById('demoPlateBadges');
             if (!container) return;
             container.innerHTML = '';
 
-            // 내 등록 차량(!isMyCar)만 시범 차량 목록으로 표시
-            const demoCars = carDatabase.filter(car => !car.isMyCar);
+            const demoCars = carDatabase.slice(0, 3);
 
             if (demoCars.length === 0) {
                 container.innerHTML = '<span class="text-[10px] text-slate-400">등록된 시범 차량이 없습니다.</span>';
